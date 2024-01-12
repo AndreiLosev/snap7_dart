@@ -8,9 +8,14 @@ import 'package:ffi/ffi.dart';
 typedef S7Cli = Pointer<UintPtr>;
 
 class Client {
+  static final _finalizer = Finalizer((Client c) {
+    print("<<<<<<<<<< destory >>>>>>>>>>>>>>>");
+    c._destroy(c._pointer);
+  });
+
   late final DynamicLibrary _lib;
+
   late final S7Cli _pointer;
-  final _isConnected = calloc.allocate<Int32>(4);
 
   late final _createClient =
       _lib.lookupFunction<S7Cli Function(), S7Cli Function()>('Cli_Create');
@@ -73,7 +78,10 @@ class Client {
       }
 
       _lib = DynamicLibrary.open(libName);
+
       _pointer = _createClient();
+
+      _finalizer.attach(this, this);
     }
   }
 
@@ -83,27 +91,42 @@ class Client {
     _checkResult(code);
   }
 
-  bool isConnected() {
-    final code = _getConnected(_pointer, _isConnected);
+  void setConnectionType(int type) {
+    final code = _setConnectionType(_pointer, type);
     _checkResult(code);
+  }
 
-    return _isConnected.value != 0;
+  bool isConnected() {
+    late final bool result;
+
+    using((arena) {
+      final p = arena.allocate<Int32>(8);
+      final code = _getConnected(_pointer, p);
+      _checkResult(code);
+      result = p.value != 0;
+    });
+
+    return result;
   }
 
   void setParam(S7Param paramType, int value) {
-    final p = calloc.allocate<Int64>(8);
-    p.value = value;
-    final code = _setParam(_pointer, paramType.value, p.cast());
-    calloc.free(p);
-    _checkResult(code);
+    using((arena) {
+      final p = arena.allocate<Int64>(8);
+      p.value = value;
+      final code = _setParam(_pointer, paramType.value, p.cast());
+      _checkResult(code);
+    });
   }
 
   int getParam(S7Param paramType) {
-    final p = calloc.allocate<Int64>(8);
-    final code = _getParam(_pointer, paramType.value, p.cast());
-    final result = p.value;
-    calloc.free(p);
-    _checkResult(code);
+    late final int result;
+
+    using((arena) {
+      final p = arena.allocate<Int64>(8);
+      final code = _getParam(_pointer, paramType.value, p.cast());
+      result = p.value;
+      _checkResult(code);
+    });
 
     return result;
   }
@@ -111,7 +134,6 @@ class Client {
   void disconnect() {
     final code = _disconnect(_pointer);
     _checkResult(code);
-    // _destroy(_pointer);
   }
 
   Uint8List _readArea(S7Area area, int start, int amount, [int dbNumber = 0]) {
@@ -122,16 +144,18 @@ class Client {
     };
 
     final size = amount * wordLen.len;
-    final p = malloc.allocate<Uint8>(size);
 
-    final code = _readAreaNative(
-        _pointer, area.value, dbNumber, start, amount, wordLen.code, p.cast());
+    late final Uint8List result;
 
-    final result = Uint8List.fromList(p.asTypedList(size).toList());
+    using((arena) {
+      final p = arena.allocate<Uint8>(size);
 
-    malloc.free(p);
+      final code = _readAreaNative(_pointer, area.value, dbNumber, start,
+          amount, wordLen.code, p.cast());
+      _checkResult(code);
 
-    _checkResult(code);
+      result = Uint8List.fromList(p.asTypedList(size).toList());
+    }, malloc);
 
     return result;
   }
@@ -143,20 +167,16 @@ class Client {
       _ => WordLen.byte,
     };
 
-    final p = malloc.allocate<Uint8>(data.length);
-    for (var i = 0; i < data.length; i++) {
-      p[i] = data[i];
-    }
-
-    final amaunt = data.length ~/ wordLen.len;
-
-    final code = _writeAreaNative(
-        _pointer, area.value, dbNumber, start, amaunt, wordLen.code, p.cast());
-
-    malloc.free(p);
-
-    _checkResult(code);
-
+    using((arena) {
+      final p = arena.allocate<Uint8>(data.length);
+      for (var i = 0; i < data.length; i++) {
+        p[i] = data[i];
+      }
+      final amaunt = data.length ~/ wordLen.len;
+      final code = _writeAreaNative(_pointer, area.value, dbNumber, start,
+          amaunt, wordLen.code, p.cast());
+      _checkResult(code);
+    }, malloc);
   }
 
   Uint8List readDataBlock(int dbNumber, int start, int size) {
@@ -209,10 +229,12 @@ class Client {
 
   void _checkResult(int code) {
     if (code != 0) {
-      final p = calloc.allocate<Char>(1024);
-      _errorText(code, p, 1024);
-      final text = p.cast<Utf8>().toDartString(length: 1024);
-      calloc.free(p);
+      late final String text;
+      using((arena) {
+        final p = arena.allocate<Char>(1024);
+        _errorText(code, p, 1024);
+        text = p.cast<Utf8>().toDartString(length: 1024);
+      });
 
       throw S7Error(code, text);
     }
