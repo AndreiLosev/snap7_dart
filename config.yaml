@@ -1,0 +1,6 @@
+name: NativeLibrary
+description: Bindings to `snap7`.
+output: './lib/src/native_lib.dart'
+headers:
+  entry-points:
+    - 'lib.h'
