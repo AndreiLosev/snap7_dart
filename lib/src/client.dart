@@ -10,6 +10,7 @@ typedef S7Cli = Pointer<UintPtr>;
 class Client {
   static final _finalizer = Finalizer((Client c) {
     print("<<<<<<<<<< destory >>>>>>>>>>>>>>>");
+    calloc.free(c._pointer);
     c._destroy(c._pointer);
   });
 
