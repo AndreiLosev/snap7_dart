@@ -8,11 +8,6 @@ import 'package:ffi/ffi.dart';
 typedef S7Cli = Pointer<UintPtr>;
 
 class Client {
-  static final _finalizer = Finalizer((Client c) {
-    print("<<<<<<<<<< destory >>>>>>>>>>>>>>>");
-    calloc.free(c._pointer);
-    c._destroy(c._pointer);
-  });
 
   late final DynamicLibrary _lib;
 
@@ -25,8 +20,8 @@ class Client {
       Int Function(S7Cli, Uint16),
       int Function(S7Cli, int)>('Cli_SetConnectionType');
 
-  late final _destroy = _lib
-      .lookupFunction<Int Function(S7Cli), int Function(S7Cli)>('Cli_Destroy');
+  late final _destroy = _lib.lookupFunction<Void Function(Pointer<S7Cli>),
+      void Function(Pointer<S7Cli>)>('Cli_Destroy');
 
   late final _connectTo = _lib.lookupFunction<
       Int Function(S7Cli, Pointer<Char>, Int, Int),
@@ -81,8 +76,6 @@ class Client {
       _lib = DynamicLibrary.open(libName);
 
       _pointer = _createClient();
-
-      _finalizer.attach(this, this);
     }
   }
 
@@ -146,16 +139,17 @@ class Client {
 
     final size = amount * wordLen.len;
 
-    late final Uint8List result;
+    final result = Uint8List(size);
 
     using((arena) {
       final p = arena.allocate<Uint8>(size);
-
       final code = _readAreaNative(_pointer, area.value, dbNumber, start,
           amount, wordLen.code, p.cast());
       _checkResult(code);
 
-      result = Uint8List.fromList(p.asTypedList(size).toList());
+      for (var i = 0; i < size; i++) {
+        result[i] = p[i];
+      }
     }, malloc);
 
     return result;
@@ -226,6 +220,14 @@ class Client {
 
   void writeCounters(int start, Uint8List data) {
     _writeArea(S7Area.counters, start, data);
+  }
+
+  void destroy() {
+    using((arena) {
+      final p = arena.allocate<S7Cli>(8);
+      p.value = _pointer;
+      _destroy(p);
+    });
   }
 
   void _checkResult(int code) {
