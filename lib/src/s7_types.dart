@@ -1,3 +1,5 @@
+import 'dart:ffi' as ffi;
+
 enum S7Param {
   socketRemotePort(2),
   clientPingTimeout(3),
@@ -24,6 +26,15 @@ enum S7Area {
   final int value;
 
   const S7Area(this.value);
+
+  WordLen toWordLen() {
+    return switch (this) {
+      S7Area.timers => WordLen.timer,
+      S7Area.counters => WordLen.counter,
+      _ => WordLen.byte,
+    };
+
+}
 }
 
 enum WordLen {
@@ -39,4 +50,29 @@ enum WordLen {
   final int len;
 
   const WordLen(this.code, this.len);
+}
+
+class S7Error {
+  final int _code;
+  final String _message;
+
+  S7Error(this._code, this._message);
+
+  int get code => _code;
+
+  String get message => _message;
+
+  @override
+  String toString() => "S7Error: $message";
+}
+
+class MultiReadItem {
+  final S7Area area;
+  final int dbNum;
+  final int start;
+  final int size;
+
+  const MultiReadItem(this.area, this.dbNum, this.start, this.size);
+
+  int getByteSize() => area.toWordLen().len * size;
 }

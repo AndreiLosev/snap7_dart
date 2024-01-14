@@ -1,92 +1,32 @@
 import 'dart:ffi';
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:dart_snap7/src/s7_enums.dart';
+import 'package:dart_snap7/src/load_lib.dart';
+import 'package:dart_snap7/src/multi_read_request.dart';
+import 'package:dart_snap7/src/s7_types.dart';
 import 'package:ffi/ffi.dart';
 
 typedef S7Cli = Pointer<UintPtr>;
 
 class Client {
-
-  late final DynamicLibrary _lib;
+  late final NativeSnap7 _lib;
 
   late final S7Cli _pointer;
 
-  late final _createClient =
-      _lib.lookupFunction<S7Cli Function(), S7Cli Function()>('Cli_Create');
-
-  late final _setConnectionType = _lib.lookupFunction<
-      Int Function(S7Cli, Uint16),
-      int Function(S7Cli, int)>('Cli_SetConnectionType');
-
-  late final _destroy = _lib.lookupFunction<Void Function(Pointer<S7Cli>),
-      void Function(Pointer<S7Cli>)>('Cli_Destroy');
-
-  late final _connectTo = _lib.lookupFunction<
-      Int Function(S7Cli, Pointer<Char>, Int, Int),
-      int Function(S7Cli, Pointer<Char>, int, int)>('Cli_ConnectTo');
-
-  late final _disconnect =
-      _lib.lookupFunction<Int Function(S7Cli), int Function(S7Cli)>(
-          'Cli_Disconnect');
-
-  late final _getParam = _lib.lookupFunction<
-      Int Function(S7Cli, Int, Pointer<Void>),
-      int Function(S7Cli, int, Pointer<Void>)>('Cli_GetParam');
-
-  late final _setParam = _lib.lookupFunction<
-      Int Function(S7Cli, Int, Pointer<Void>),
-      int Function(S7Cli, int, Pointer<Void>)>('Cli_SetParam');
-
-  late final _getConnected = _lib.lookupFunction<
-      Int Function(S7Cli, Pointer<Int32>),
-      int Function(S7Cli, Pointer<Int32>)>('Cli_GetConnected');
-
-  late final _errorText = _lib.lookupFunction<
-      Int Function(Int, Pointer<Char>, Int),
-      int Function(int, Pointer<Char>, int)>('Cli_ErrorText');
-
-  late final _readAreaNative = _lib.lookupFunction<
-      Int Function(S7Cli, Int, Int, Int, Int, Int, Pointer<Void>),
-      int Function(
-          S7Cli, int, int, int, int, int, Pointer<Void>)>('Cli_ReadArea');
-
-  late final _writeAreaNative = _lib.lookupFunction<
-      Int Function(S7Cli, Int, Int, Int, Int, Int, Pointer<Void>),
-      int Function(
-          S7Cli, int, int, int, int, int, Pointer<Void>)>('Cli_WriteArea');
-
   Client([String? path]) {
-    if (path is String) {
-      _lib = DynamicLibrary.open(path);
-    } else {
-      late final String libName;
-
-      if (Platform.isLinux || Platform.isAndroid) {
-        libName = 'libsnap7.so';
-      } else if (Platform.isMacOS) {
-        libName = 'libsnap7.dylib';
-      } else if (Platform.isWindows) {
-        libName = 'libsnap7.dll';
-      } else {
-        throw "Platform not suported";
-      }
-
-      _lib = DynamicLibrary.open(libName);
-
-      _pointer = _createClient();
-    }
+    final loader = LoadLib.getI(path);
+    _lib = loader.lib;
+    _pointer = _lib.createClient();
   }
 
   void connect(String ip, int rack, int slot, [int port = 102]) {
     setParam(S7Param.socketRemotePort, port);
-    final code = _connectTo(_pointer, ip.toNativeUtf8().cast(), rack, slot);
+    final code = _lib.connectTo(_pointer, ip.toNativeUtf8().cast(), rack, slot);
     _checkResult(code);
   }
 
   void setConnectionType(int type) {
-    final code = _setConnectionType(_pointer, type);
+    final code = _lib.setConnectionType(_pointer, type);
     _checkResult(code);
   }
 
@@ -95,7 +35,7 @@ class Client {
 
     using((arena) {
       final p = arena.allocate<Int32>(8);
-      final code = _getConnected(_pointer, p);
+      final code = _lib.getConnected(_pointer, p);
       _checkResult(code);
       result = p.value != 0;
     });
@@ -107,7 +47,7 @@ class Client {
     using((arena) {
       final p = arena.allocate<Int64>(8);
       p.value = value;
-      final code = _setParam(_pointer, paramType.value, p.cast());
+      final code = _lib.setParam(_pointer, paramType.value, p.cast());
       _checkResult(code);
     });
   }
@@ -117,7 +57,7 @@ class Client {
 
     using((arena) {
       final p = arena.allocate<Int64>(8);
-      final code = _getParam(_pointer, paramType.value, p.cast());
+      final code = _lib.getParam(_pointer, paramType.value, p.cast());
       result = p.value;
       _checkResult(code);
     });
@@ -126,24 +66,18 @@ class Client {
   }
 
   void disconnect() {
-    final code = _disconnect(_pointer);
+    final code = _lib.disconnect(_pointer);
     _checkResult(code);
   }
 
   Uint8List _readArea(S7Area area, int start, int amount, [int dbNumber = 0]) {
-    final wordLen = switch (area) {
-      S7Area.timers => WordLen.timer,
-      S7Area.counters => WordLen.counter,
-      _ => WordLen.byte,
-    };
-
+    final wordLen = area.toWordLen();
     final size = amount * wordLen.len;
-
     final result = Uint8List(size);
 
     using((arena) {
       final p = arena.allocate<Uint8>(size);
-      final code = _readAreaNative(_pointer, area.value, dbNumber, start,
+      final code = _lib.readAreaNative(_pointer, area.value, dbNumber, start,
           amount, wordLen.code, p.cast());
       _checkResult(code);
 
@@ -156,11 +90,7 @@ class Client {
   }
 
   void _writeArea(S7Area area, int start, Uint8List data, [int dbNumber = 0]) {
-    final wordLen = switch (area) {
-      S7Area.timers => WordLen.timer,
-      S7Area.counters => WordLen.counter,
-      _ => WordLen.byte,
-    };
+    final wordLen = area.toWordLen();
 
     using((arena) {
       final p = arena.allocate<Uint8>(data.length);
@@ -168,7 +98,7 @@ class Client {
         p[i] = data[i];
       }
       final amaunt = data.length ~/ wordLen.len;
-      final code = _writeAreaNative(_pointer, area.value, dbNumber, start,
+      final code = _lib.writeAreaNative(_pointer, area.value, dbNumber, start,
           amaunt, wordLen.code, p.cast());
       _checkResult(code);
     }, malloc);
@@ -222,38 +152,80 @@ class Client {
     _writeArea(S7Area.counters, start, data);
   }
 
+  void readMultiVarsTest(Pointer<PS7DataItem> s, int len) {
+    final x = _lib.readMultiVars(_pointer, s, len);
+    _checkResult(x);
+    _checkResult(s.ref.Result);
+  }
+
   void destroy() {
     using((arena) {
       final p = arena.allocate<S7Cli>(8);
       p.value = _pointer;
-      _destroy(p);
+      _lib.destroy(p);
     });
+  }
+
+  List<(S7Error?, Uint8List)> readMultiVars(MultiReadRequest request) {
+    final result = <(S7Error?, Uint8List)>[];
+
+    for (var items in request.execute()) {
+        result.addAll(_readMultiVarsExecut(items));
+    }
+
+    return result;
+  }
+
+  List<(S7Error?, Uint8List)> _readMultiVarsExecut(List<MultiReadItem> items) {
+    final result = <(S7Error?, Uint8List)>[];
+
+    using((arena) {
+      final nativeItems =
+          arena.allocate<PS7DataItem>(sizeOf<PS7DataItem>() * items.length);
+      for (var i = 0; i < items.length; i++) {
+        nativeItems[i].Area = items[i].area.value;
+        nativeItems[i].WordLen = items[i].area.toWordLen().code;
+        nativeItems[i].DBNumber = items[i].dbNum;
+        nativeItems[i].Start = items[i].start;
+        nativeItems[i].Amount = items[i].size;
+        nativeItems[i].Result = 0;
+        nativeItems[i].pData =
+            arena.allocate(items[i].size * items[i].area.toWordLen().len);
+      }
+
+      _lib.readMultiVars(_pointer, nativeItems, items.length);
+
+      for (var i = 0; i < items.length; i++) {
+        final len = items[i].size * items[i].area.toWordLen().len;
+        final buf = Uint8List(len);
+        final code = nativeItems[i].Result;
+        final err = code == 0 ? null : S7Error(code, _createErrorText(code));
+        for (var i = 0; i < len; i++) {
+          buf[i] = nativeItems[i].pData[i];
+        }
+
+        result.add((err, buf));
+      }
+    });
+
+    return result;
   }
 
   void _checkResult(int code) {
     if (code != 0) {
-      late final String text;
-      using((arena) {
-        final p = arena.allocate<Char>(1024);
-        _errorText(code, p, 1024);
-        text = p.cast<Utf8>().toDartString(length: 1024);
-      });
-
+      final text = _createErrorText(code);
       throw S7Error(code, text);
     }
   }
-}
 
-class S7Error {
-  final int _code;
-  final String _message;
+  String _createErrorText(int code) {
+    late final String text;
+    using((arena) {
+      final p = arena.allocate<Char>(1024);
+      _lib.errorText(code, p, 1024);
+      text = p.cast<Utf8>().toDartString(length: 1024);
+    });
 
-  S7Error(this._code, this._message);
-
-  int get code => _code;
-
-  String get message => _message;
-
-  @override
-  String toString() => "S7Error: $message";
+    return text;
+  }
 }
