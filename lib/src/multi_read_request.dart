@@ -63,8 +63,8 @@ class MultiReadRequest {
     int requestSize = 0;
     final result = <List<MultiReadItem>>[];
 
-
     for (var i in _items) {
+      print(requestSize);
       if ((requestSize + i.getByteSize()) < _maxSize) {
         requestSize += i.getByteSize();
         oneRequest.add(i);

@@ -75,4 +75,9 @@ class MultiReadItem {
   const MultiReadItem(this.area, this.dbNum, this.start, this.size);
 
   int getByteSize() => area.toWordLen().len * size;
+
+  @override
+  String toString() {
+    return "area: $area, db: $dbNum, start: $start, size: $size";
+  }
 }
