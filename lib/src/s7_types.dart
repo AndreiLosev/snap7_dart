@@ -1,4 +1,5 @@
 import 'dart:ffi' as ffi;
+import 'dart:typed_data';
 
 enum S7Param {
   socketRemotePort(2),
@@ -33,8 +34,7 @@ enum S7Area {
       S7Area.counters => WordLen.counter,
       _ => WordLen.byte,
     };
-
-}
+  }
 }
 
 enum WordLen {
@@ -66,18 +66,30 @@ class S7Error {
   String toString() => "S7Error: $message";
 }
 
-class MultiReadItem {
+abstract class MultiItem {
   final S7Area area;
   final int dbNum;
   final int start;
-  final int size;
 
-  const MultiReadItem(this.area, this.dbNum, this.start, this.size);
+  const MultiItem(this.area, this.dbNum, this.start);
+
+  int get size;
 
   int getByteSize() => area.toWordLen().len * size;
+}
+
+class MultiReadItem extends MultiItem {
+  @override
+  final int size;
+
+  const MultiReadItem(super.area, super.dbNum, super.start, this.size);
+}
+
+class MultiWriteItem extends MultiItem {
+  final Uint8List buf;
+
+  const MultiWriteItem(super.area, super.dbNum, super.start, this.buf);
 
   @override
-  String toString() {
-    return "area: $area, db: $dbNum, start: $start, size: $size";
-  }
+  int get size => buf.length;
 }

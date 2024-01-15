@@ -56,6 +56,12 @@ class NativeSnap7 {
     Int Function(S7Cli, Pointer<PS7DataItem>, Int),
     int Function(S7Cli, Pointer<PS7DataItem>, int)
   >('Cli_ReadMultiVars');
+
+  late final writeMultiVars = _lib.lookupFunction<
+    Int Function(S7Cli, Pointer<PS7DataItem>, Int),
+    int Function(S7Cli, Pointer<PS7DataItem>, int)
+  >('Cli_WriteMultiVars');
+
 }
 
 final class PS7DataItem extends Struct {

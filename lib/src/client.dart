@@ -2,7 +2,7 @@ import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:dart_snap7/src/load_lib.dart';
-import 'package:dart_snap7/src/multi_read_request.dart';
+import 'package:dart_snap7/src/multi_request.dart';
 import 'package:dart_snap7/src/s7_types.dart';
 import 'package:ffi/ffi.dart';
 
@@ -170,13 +170,23 @@ class Client {
     final result = <(S7Error?, Uint8List)>[];
 
     for (var items in request.execute()) {
-        result.addAll(_readMultiVarsExecut(items));
+      result.addAll(_multiVarsExecut(items));
     }
 
     return result;
   }
 
-  List<(S7Error?, Uint8List)> _readMultiVarsExecut(List<MultiReadItem> items) {
+  List<S7Error?> writeMultiVars(MultiWriteRequest request) {
+    final result = <(S7Error?, Uint8List)>[];
+
+    for (var items in request.execute()) {
+      result.addAll(_multiVarsExecut(items));
+    }
+
+    return result.map((e) => e.$1).toList();
+  }
+
+  List<(S7Error?, Uint8List)> _multiVarsExecut(List<MultiItem> items) {
     final result = <(S7Error?, Uint8List)>[];
 
     using((arena) {
@@ -189,24 +199,40 @@ class Client {
         nativeItems[i].Start = items[i].start;
         nativeItems[i].Amount = items[i].size;
         nativeItems[i].Result = 0;
-        nativeItems[i].pData =
-            arena.allocate(items[i].size * items[i].area.toWordLen().len);
+        nativeItems[i].pData = arena.allocate(items[i].getByteSize());
+
+        if (items[i] is MultiReadItem) {
+          continue;
+        }
+
+        for (var j = 0; j < items[i].getByteSize(); j++) {
+          nativeItems[i].pData[j] = (items[i] as MultiWriteItem).buf[j];
+        }
       }
 
-      _lib.readMultiVars(_pointer, nativeItems, items.length);
+      if (items.first is MultiWriteItem) {
+        _lib.writeMultiVars(_pointer, nativeItems, items.length);
+      } else {
+        _lib.readMultiVars(_pointer, nativeItems, items.length);
+      }
 
       for (var i = 0; i < items.length; i++) {
-        final len = items[i].size * items[i].area.toWordLen().len;
-        final buf = Uint8List(len);
         final code = nativeItems[i].Result;
         final err = code == 0 ? null : S7Error(code, _createErrorText(code));
-        for (var i = 0; i < len; i++) {
-          buf[i] = nativeItems[i].pData[i];
+
+        if (items[i] is MultiWriteItem || err != null) {
+          result.add((err, Uint8List(0)));
+          continue;
+        }
+
+        final buf = Uint8List(items[i].getByteSize());
+        for (var j = 0; j < items[i].getByteSize(); j++) {
+          buf[j] = nativeItems[i].pData[j];
         }
 
         result.add((err, buf));
       }
-    });
+    }, malloc);
 
     return result;
   }
