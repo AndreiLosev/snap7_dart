@@ -4,15 +4,13 @@ import 'package:dart_snap7/src/multi_request.dart';
 import 'package:dart_snap7/src/s7_types.dart';
 
 sealed class Method {
-
-  Object? get params;
+  Object? get params => null;
   Object? get result => null;
 
-  Method(); 
+  Method();
 }
 
 class CreateClient extends Method {
-
   @override
   final (String?,) params;
 
@@ -20,7 +18,6 @@ class CreateClient extends Method {
 }
 
 class Connect extends Method {
-
   @override
   final (String ip, int, int, int) params;
 
@@ -28,7 +25,6 @@ class Connect extends Method {
 }
 
 class SetConnectionType extends Method {
-
   @override
   final (int,) params;
 
@@ -36,26 +32,18 @@ class SetConnectionType extends Method {
 }
 
 class IsConnected extends Method {
-
-  @override
-  final Null params = null;
-  
   @override
   late final bool result;
-
-  IsConnected();
 }
 
 class SetParam extends Method {
-
   @override
   final (S7Param, int) params;
 
-   SetParam(this.params);
+  SetParam(this.params);
 }
 
 class GetParam extends Method {
-
   @override
   final (S7Param,) params;
 
@@ -65,16 +53,9 @@ class GetParam extends Method {
   GetParam(this.params);
 }
 
-class Disconnect extends Method {
-
-  @override
-  final Null params = null;
-
-  Disconnect();
-}
+class Disconnect extends Method {}
 
 class ReadDataBlock extends Method {
-
   @override
   final (int, int, int) params;
 
@@ -85,7 +66,6 @@ class ReadDataBlock extends Method {
 }
 
 class WriteDataBlock extends Method {
-
   @override
   final (int, int, Uint8List) params;
 
@@ -93,7 +73,6 @@ class WriteDataBlock extends Method {
 }
 
 class ReadInputs extends Method {
-
   @override
   final (int, int) params;
 
@@ -104,7 +83,6 @@ class ReadInputs extends Method {
 }
 
 class WriteInputs extends Method {
-
   @override
   final (int, Uint8List) params;
 
@@ -112,7 +90,6 @@ class WriteInputs extends Method {
 }
 
 class ReadOutputs extends Method {
-
   @override
   final (int, int) params;
 
@@ -123,7 +100,6 @@ class ReadOutputs extends Method {
 }
 
 class WriteOutputs extends Method {
-  
   @override
   final (int, Uint8List) params;
 
@@ -134,7 +110,6 @@ class WriteOutputs extends Method {
 }
 
 class ReadMerkers extends Method {
-
   @override
   final (int, int) params;
 
@@ -145,7 +120,6 @@ class ReadMerkers extends Method {
 }
 
 class WriteMerkers extends Method {
-
   @override
   final (int, Uint8List) params;
 
@@ -153,7 +127,6 @@ class WriteMerkers extends Method {
 }
 
 class ReadTimers extends Method {
-
   @override
   final (int, int) params;
 
@@ -164,7 +137,6 @@ class ReadTimers extends Method {
 }
 
 class WriteTimers extends Method {
-
   @override
   final (int, Uint8List) params;
 
@@ -172,7 +144,6 @@ class WriteTimers extends Method {
 }
 
 class ReadCounters extends Method {
-  
   @override
   final (int, int) params;
 
@@ -183,7 +154,6 @@ class ReadCounters extends Method {
 }
 
 class WriteCounters extends Method {
-
   @override
   final (int, Uint8List) params;
 
@@ -191,7 +161,6 @@ class WriteCounters extends Method {
 }
 
 class ReadMultiVars extends Method {
-
   @override
   final (MultiReadRequest,) params;
 
@@ -202,13 +171,13 @@ class ReadMultiVars extends Method {
 }
 
 class WriteMultiVars extends Method {
-
   @override
   final (MultiWriteRequest,) params;
 
   @override
   late final List<S7Error?> result;
 
-
   WriteMultiVars(this.params);
 }
+
+class Destroy extends Method {}

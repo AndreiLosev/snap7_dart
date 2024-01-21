@@ -36,6 +36,7 @@ class AsyncClient {
   }
 
   Future<void> destroy() async {
+    await _methodHandler(Destroy());
     _isolate.kill();
     _subscriber.cancel();
   }
@@ -124,7 +125,8 @@ class AsyncClient {
     await _methodHandler(WriteCounters((start, data)));
   }
 
-  Future<List<(S7Error?, Uint8List)>> readMultiVars(MultiReadRequest request) async {
+  Future<List<(S7Error?, Uint8List)>> readMultiVars(
+      MultiReadRequest request) async {
     final m = await _methodHandler(ReadMultiVars((request,)));
     return m.result;
   }
@@ -175,74 +177,72 @@ class AsyncClient {
     sender.send(receiver.sendPort);
     late final Client client;
 
-    try {
-      await for (var frame in receiver) {
-        if (frame is! Frame) {
-          continue;
-        }
-        try {
-          final method = frame.method;
-          switch (method) {
-            case CreateClient():
-              client = Client(method.params.$1);
-            case Connect():
-              final (ip, rack, slot, port) = method.params;
-              client.connect(ip, rack, slot, port);
-            case SetConnectionType():
-              client.setConnectionType(method.params.$1);
-            case IsConnected():
-              method.result = client.isConnected();
-            case SetParam():
-              client.setParam(method.params.$1, method.params.$2);
-            case GetParam():
-              method.result = client.getParam(method.params.$1);
-            case Disconnect():
-              client.disconnect();
-            case ReadDataBlock():
-              final (dbNum, start, size) = method.params;
-              client.readDataBlock(dbNum, start, size);
-            case WriteDataBlock():
-              final (dbNum, start, buf) = method.params;
-              client.writeDataBlock(dbNum, start, buf);
-            case ReadInputs():
-              final (start, size) = method.params;
-              method.result = client.readInputs(start, size);
-            case WriteInputs():
-              client.writeInputs(method.params.$1, method.params.$2);
-            case ReadOutputs():
-              final (start, size) = method.params;
-              method.result = client.readOutputs(start, size);
-            case WriteOutputs():
-              client.writeOutputs(method.params.$1, method.params.$2);
-            case ReadMerkers():
-              final (start, size) = method.params;
-              method.result = client.readMerkers(start, size);
-            case WriteMerkers():
-              client.writeMerkers(method.params.$1, method.params.$2);
-            case ReadTimers():
-              final (start, size) = method.params;
-              method.result = client.readTimers(start, size);
-            case WriteTimers():
-              client.writeTimers(method.params.$1, method.params.$2);
-            case ReadCounters():
-              final (start, size) = method.params;
-              method.result = client.readCounters(start, size);
-            case WriteCounters():
-              client.writeCounters(method.params.$1, method.params.$2);
-            case ReadMultiVars():
-              method.result = client.readMultiVars(method.params.$1);
-            case WriteMultiVars():
-              method.result = client.writeMultiVars(method.params.$1);
-          }
-
-          sender.send(frame);
-        } catch (e) {
-          frame.err = e;
-          sender.send(frame);
-        }
+    await for (var frame in receiver) {
+      if (frame is! Frame) {
+        throw StateError("message mast be Frame");
       }
-    } finally {
-      client.destroy();
+      try {
+        final method = frame.method;
+        switch (method) {
+          case CreateClient():
+            client = Client(method.params.$1);
+          case Connect():
+            final (ip, rack, slot, port) = method.params;
+            client.connect(ip, rack, slot, port);
+          case SetConnectionType():
+            client.setConnectionType(method.params.$1);
+          case IsConnected():
+            method.result = client.isConnected();
+          case SetParam():
+            client.setParam(method.params.$1, method.params.$2);
+          case GetParam():
+            method.result = client.getParam(method.params.$1);
+          case Disconnect():
+            client.disconnect();
+          case ReadDataBlock():
+            final (dbNum, start, size) = method.params;
+            method.result = client.readDataBlock(dbNum, start, size);
+          case WriteDataBlock():
+            final (dbNum, start, buf) = method.params;
+            client.writeDataBlock(dbNum, start, buf);
+          case ReadInputs():
+            final (start, size) = method.params;
+            method.result = client.readInputs(start, size);
+          case WriteInputs():
+            client.writeInputs(method.params.$1, method.params.$2);
+          case ReadOutputs():
+            final (start, size) = method.params;
+            method.result = client.readOutputs(start, size);
+          case WriteOutputs():
+            client.writeOutputs(method.params.$1, method.params.$2);
+          case ReadMerkers():
+            final (start, size) = method.params;
+            method.result = client.readMerkers(start, size);
+          case WriteMerkers():
+            client.writeMerkers(method.params.$1, method.params.$2);
+          case ReadTimers():
+            final (start, size) = method.params;
+            method.result = client.readTimers(start, size);
+          case WriteTimers():
+            client.writeTimers(method.params.$1, method.params.$2);
+          case ReadCounters():
+            final (start, size) = method.params;
+            method.result = client.readCounters(start, size);
+          case WriteCounters():
+            client.writeCounters(method.params.$1, method.params.$2);
+          case ReadMultiVars():
+            method.result = client.readMultiVars(method.params.$1);
+          case WriteMultiVars():
+            method.result = client.writeMultiVars(method.params.$1);
+          case Destroy():
+            client.destroy();
+        }
+
+        sender.send(frame);
+      } catch (e) {
+        frame.err = e;
+        sender.send(frame);
+      }
     }
   }
 }
