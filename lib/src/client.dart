@@ -70,40 +70,6 @@ class Client {
     _checkResult(code);
   }
 
-  Uint8List _readArea(S7Area area, int start, int amount, [int dbNumber = 0]) {
-    final wordLen = area.toWordLen();
-    final size = amount * wordLen.len;
-    final result = Uint8List(size);
-
-    using((arena) {
-      final p = arena.allocate<Uint8>(size);
-      final code = _lib.readAreaNative(_pointer, area.value, dbNumber, start,
-          amount, wordLen.code, p.cast());
-      _checkResult(code);
-
-      for (var i = 0; i < size; i++) {
-        result[i] = p[i];
-      }
-    }, malloc);
-
-    return result;
-  }
-
-  void _writeArea(S7Area area, int start, Uint8List data, [int dbNumber = 0]) {
-    final wordLen = area.toWordLen();
-
-    using((arena) {
-      final p = arena.allocate<Uint8>(data.length);
-      for (var i = 0; i < data.length; i++) {
-        p[i] = data[i];
-      }
-      final amaunt = data.length ~/ wordLen.len;
-      final code = _lib.writeAreaNative(_pointer, area.value, dbNumber, start,
-          amaunt, wordLen.code, p.cast());
-      _checkResult(code);
-    }, malloc);
-  }
-
   Uint8List readDataBlock(int dbNumber, int start, int size) {
     return _readArea(S7Area.dataBlock, start, size, dbNumber);
   }
@@ -152,12 +118,6 @@ class Client {
     _writeArea(S7Area.counters, start, data);
   }
 
-  void readMultiVarsTest(Pointer<PS7DataItem> s, int len) {
-    final x = _lib.readMultiVars(_pointer, s, len);
-    _checkResult(x);
-    _checkResult(s.ref.Result);
-  }
-
   void destroy() {
     using((arena) {
       final p = arena.allocate<S7Cli>(8);
@@ -184,6 +144,40 @@ class Client {
     }
 
     return result.map((e) => e.$1).toList();
+  }
+
+  Uint8List _readArea(S7Area area, int start, int amount, [int dbNumber = 0]) {
+    final wordLen = area.toWordLen();
+    final size = amount * wordLen.len;
+    final result = Uint8List(size);
+
+    using((arena) {
+      final p = arena.allocate<Uint8>(size);
+      final code = _lib.readAreaNative(_pointer, area.value, dbNumber, start,
+          amount, wordLen.code, p.cast());
+      _checkResult(code);
+
+      for (var i = 0; i < size; i++) {
+        result[i] = p[i];
+      }
+    }, malloc);
+
+    return result;
+  }
+
+  void _writeArea(S7Area area, int start, Uint8List data, [int dbNumber = 0]) {
+    final wordLen = area.toWordLen();
+
+    using((arena) {
+      final p = arena.allocate<Uint8>(data.length);
+      for (var i = 0; i < data.length; i++) {
+        p[i] = data[i];
+      }
+      final amaunt = data.length ~/ wordLen.len;
+      final code = _lib.writeAreaNative(_pointer, area.value, dbNumber, start,
+          amaunt, wordLen.code, p.cast());
+      _checkResult(code);
+    }, malloc);
   }
 
   List<(S7Error?, Uint8List)> _multiVarsExecut(List<MultiItem> items) {

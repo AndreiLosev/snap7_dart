@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dart_snap7/src/s7_types.dart';
 
-abstract class MultiRequest {
+sealed class MultiRequest {
   final int _maxSize;
   final _items = <MultiItem>[];
 
