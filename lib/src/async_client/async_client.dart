@@ -18,7 +18,7 @@ class AsyncClient {
   late final StreamSubscription _subscriber;
   final _results = <int, Completer<Frame>>{};
 
-  Future<void> initIsolate() async {
+  Future<void> init([String? path]) async {
     _isolate = await Isolate.spawn(_isolateMain, _receiver.sendPort);
     _isolate.setErrorsFatal(true);
     _isolate.addErrorListener(_receiver.sendPort);
@@ -33,16 +33,13 @@ class AsyncClient {
     });
 
     _sender = await senderCompliter.future;
+    await _methodHandler(CreateClient((path,)));
   }
 
   Future<void> destroy() async {
     await _methodHandler(Destroy());
     _isolate.kill();
     _subscriber.cancel();
-  }
-
-  Future<void> createClient([String? path]) async {
-    await _methodHandler(CreateClient((path,)));
   }
 
   Future<void> connect(String ip, int rack, int slot, [int port = 102]) async {
