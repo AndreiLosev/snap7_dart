@@ -1,7 +1,7 @@
 name: dart_snap7
-description: A sample command-line application.
-version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+description: wrapper for C library snap7 https://snap7.sourceforge.net/
+version: 0.4.0
+repository: https://github.com/AndreiLosev/snap7_dart
 
 environment:
   sdk: ^3.2.3
@@ -9,7 +9,6 @@ environment:
 # Add regular dependencies here.
 dependencies:
   ffi: ^2.1.0
-  ffigen: ^10.0.0
   # path: ^1.8.0
 
 dev_dependencies:
