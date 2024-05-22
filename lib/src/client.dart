@@ -1,6 +1,7 @@
 import 'dart:ffi';
 import 'dart:typed_data';
 
+import 'package:dart_snap7/src/async_client/methods.dart';
 import 'package:dart_snap7/src/load_lib.dart';
 import 'package:dart_snap7/src/multi_request.dart';
 import 'package:dart_snap7/src/s7_types.dart';
@@ -144,6 +145,36 @@ class Client {
     }
 
     return result.map((e) => e.$1).toList();
+  }
+
+  void writeMerkersBit(int byte, int bit, bool value) {
+    using((arena) {
+      final p = arena.allocate<Uint8>(1);
+      p[0] = value ? 1 : 0;
+      final code = _lib.writeAreaNative(_pointer, S7Area.merkers.value, 0, byte * 8 + bit,
+          1, WordLen.bit.code, p.cast());
+      _checkResult(code);
+    }, malloc);
+  }
+
+  void writeDataBlockBit(int dbNamber, int byte, int bit, bool value) {
+    using((arena) {
+      final p = arena.allocate<Uint8>(1);
+      p[0] = value ? 1 : 0;
+      final code = _lib.writeAreaNative(_pointer, S7Area.dataBlock.value, dbNamber, byte * 8 + bit,
+          1, WordLen.bit.code, p.cast());
+      _checkResult(code);
+    }, malloc);
+  }
+
+  void writeOutputsBit(int byte, int bit, bool value) {
+    using((arena) {
+      final p = arena.allocate<Uint8>(1);
+      p[0] = value ? 1 : 0;
+      final code = _lib.writeAreaNative(_pointer, S7Area.outputs.value, 0, byte * 8 + bit,
+          1, WordLen.bit.code, p.cast());
+      _checkResult(code);
+    }, malloc);
   }
 
   Uint8List _readArea(S7Area area, int start, int amount, [int dbNumber = 0]) {

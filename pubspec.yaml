@@ -1,6 +1,6 @@
 name: dart_snap7
 description: wrapper for C library snap7 https://snap7.sourceforge.net/
-version: 0.4.1
+version: 0.5.0
 repository: https://github.com/AndreiLosev/snap7_dart
 
 environment:

@@ -118,6 +118,18 @@ class AsyncClient {
     return m.result;
   }
 
+  Future<void> writeMerkersBit(int byte, int bit, bool value) async {
+    await _methodHandler(WriteMerkersbit((byte, bit, value)));
+  }
+
+  Future<void> writeOutputsBit(int byte, int bit, bool value) async {
+    await _methodHandler(WriteOutputsBit((byte, bit, value)));
+  }
+
+  Future<void> writeDataBlockBit(int dbNamber, int byte, int bit, bool value) async {
+    await _methodHandler(WriteDataBlockBit((dbNamber, byte, bit, value)));
+  }
+
   Future<void> writeCounters(int start, Uint8List data) async {
     await _methodHandler(WriteCounters((start, data)));
   }
@@ -227,6 +239,15 @@ class AsyncClient {
             method.result = client.readCounters(start, size);
           case WriteCounters():
             client.writeCounters(method.params.$1, method.params.$2);
+          case WriteMerkersbit():
+            final (byte, bit, value) = method.params;
+            client.writeMerkersBit(byte, bit, value);
+          case WriteDataBlockBit():
+            final (dbNamber, byte, bit, value) = method.params;
+            client.writeDataBlockBit(dbNamber, byte, bit, value);
+          case WriteOutputsBit():
+            final (byte, bit, value) = method.params;
+            client.writeOutputsBit(byte, bit, value);
           case ReadMultiVars():
             method.result = client.readMultiVars(method.params.$1);
           case WriteMultiVars():

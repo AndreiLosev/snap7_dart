@@ -160,6 +160,27 @@ class WriteCounters extends Method {
   WriteCounters(this.params);
 }
 
+class WriteMerkersbit extends Method {
+  @override
+  final (int, int, bool) params;
+
+  WriteMerkersbit(this.params);
+}
+
+class WriteDataBlockBit extends Method {
+  @override
+  final (int, int, int, bool) params;
+
+  WriteDataBlockBit(this.params);
+}
+
+class WriteOutputsBit extends Method {
+  @override
+  final (int, int, bool) params;
+
+  WriteOutputsBit(this.params);
+}
+
 class ReadMultiVars extends Method {
   @override
   final (MultiReadRequest,) params;
