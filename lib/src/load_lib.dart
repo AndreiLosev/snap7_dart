@@ -50,7 +50,7 @@ class LoadLib {
       return DynamicLibrary.open('libsnap7.so');
     } else if (Platform.isIOS) {
       try {
-        return DynamicLibrary.open('sqlite3.framework/sqlite3');
+        return DynamicLibrary.open('libsnap7.dylib');
       } on ArgumentError catch (_) {
         return DynamicLibrary.process();
       }
@@ -64,7 +64,7 @@ class LoadLib {
       }
       return result;
     } else if (Platform.isWindows) {
-      return DynamicLibrary.open('sqlite3.dll');
+      return DynamicLibrary.open('libsnap7.dll');
     }
 
     throw UnsupportedError('Unsupported platform: ${Platform.operatingSystem}');
