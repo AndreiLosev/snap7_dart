@@ -1,7 +1,6 @@
 import 'dart:ffi';
 import 'dart:typed_data';
 
-import 'package:dart_snap7/src/async_client/methods.dart';
 import 'package:dart_snap7/src/load_lib.dart';
 import 'package:dart_snap7/src/multi_request.dart';
 import 'package:dart_snap7/src/s7_types.dart';

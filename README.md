@@ -1,7 +1,7 @@
 * wrapper for C library snap7 https://snap7.sourceforge.net/
 * pub dev: https://pub.dev/packages/dart_snap7
 * To use the library, you need to manually compile libsnap7.so (libsnap7.dll - for windows)
-* dowload soruse snap7 https://sourceforge.net/projects/snap7
+* download snap7 source code https://sourceforge.net/projects/snap7
 <?code-excerpt "readme_excerpts.dart (Write)"?>
 ```dart
 import 'dart:typed_data';
